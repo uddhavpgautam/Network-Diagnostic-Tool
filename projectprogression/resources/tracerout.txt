@@ -1,0 +1,111 @@
+package traceroute;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import traceroute.TracerouteItem;
+
+/**
+ * An abstract class for running and parsing traceroute. Subclasses will
+ * implement what is required for each operating system.
+ */
+public abstract class Traceroute
+{
+
+	/*
+	 * The runtime.
+	 */
+	private Runtime run;
+
+	/**
+	 * Initialize the runtime so that commands may be run.
+	 */
+	public Traceroute()
+	{
+		run = Runtime.getRuntime();
+	}
+
+	/**
+	 * Runs traceroute, parses output and returns a list of TracerouteItems.
+	 * @param destination the destination hostname or IP
+	 * @return list of TracerouteItems
+	 */
+	public ArrayList<TracerouteItem> traceroute(String destination)
+	{
+		/*
+		 * We will be adding TracerouteItems to the result array.
+		 */
+		ArrayList<TracerouteItem> result = new ArrayList<TracerouteItem>();
+		
+		/*
+		 * This is the process that will execute the command.
+		 */
+		Process pr = null;
+		
+		/*
+		 * Obtain the correct command to run for this operating system. 
+		 */
+		String cmd = getTracerouteCommand(destination);
+
+		try
+		{
+			pr = run.exec(cmd);
+		}
+		catch(IOException e)
+		{
+			/*
+			 * Something went wrong...
+			 */
+			e.printStackTrace();
+		}
+
+		/*
+		 * Prepare a BufferedReader to read output from traceroute.
+		 */
+		BufferedReader buf = new BufferedReader(new InputStreamReader(
+				pr.getInputStream()));
+
+		/*
+		 * Attempt to parse each line and create a corresponding TracerouteItem
+		 * object.
+		 */
+		String line = "";
+		try
+		{
+			while((line = buf.readLine()) != null)
+			{
+				TracerouteItem item = parse(line);
+				result.add(item);
+			}
+		}
+		catch(IOException e)
+		{
+			/*
+			 * What could go wrong here?
+			 */
+			return null;
+		}
+
+		/*
+		 * We are finished.
+		 */
+		return result;
+	}
+
+	/**
+	 * Extracts the necessary information from a line of output (one hop) of
+	 * traceroute and makes a TracerouteItem from it.
+	 * @param line one hop of traceroute
+	 * @return the correct TracerouteItem
+	 */
+	public abstract TracerouteItem parse(String line);
+	
+	/**
+	 * Gets the proper traceroute command to run for this operating system.
+	 * @param destination the destination hostname or IP
+	 * @return the proper traceroute command
+	 */
+	public abstract String getTracerouteCommand(String destination);
+
+}
